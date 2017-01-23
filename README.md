@@ -3,18 +3,18 @@
 Este projeto implementa uma API REST alternativa aos serviços atualmente
 publicados pelo governo brasileiro.
 
-> Portabilidade dos dados em andamento, alguns conjuntos de dados ainda estão
-> sendo implementados. Se não encontrar o que procura considere abrindo um
-> ticket/issue aqui no repositório
+> Portabilidade dos dados em andamento. Se voce não encontrar o que procura considere abrindo um
+> [ticket/issue](https://github.com/thiagofelix/camara-deputados-api/issues)
+> aqui no repositório explicando o caso de uso
 
-## Como utilizar?
+# Como utilizar?
 
 Atualmente a API está publicada diretamente na plataforma [Heroku](heroku.com)
 acessível pelo endereço [api-camara-deputados.herokuapp.com](https://api-camara-deputados.herokuapp.com/)
 
-Através deste endereço você pode acompanhar quais conjuntos de dados podem ser
-acessados através da API. Novos dados serão adicionados nesta página a medida
-que os mesmos forem incorporados.
+Através deste endereço você pode acompanhar quais conjuntos de dados
+disponibilizados atté o momento. Novos dados serão adicionados nesta página
+a medida que os mesmos forem incorporados.
 
 ### Deputados
 
