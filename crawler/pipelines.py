@@ -20,16 +20,6 @@ def getkey(item, name):
     elif name == 'voto':
         return genkey(item['ideCadastro'] + item['proposicao'] + item['sessao'])
 
-class JsonExporter(BaseItemExporter):
-    def __init__(self, **kwargs):
-        self._configure(kwargs, dont_fail=True)
-        kwargs.setdefault('ensure_ascii', not self.encoding)
-        self.encoder = ScrapyJSONEncoder(**kwargs)
-
-    def export_item(self, item):
-        itemdict = dict(self._get_serialized_fields(item))
-        return self.encoder.encode(itemdict) + '\n'
-
 class StoreItemDBPipeline(object):
     """Camara pipeline for storing scraped items in the database"""
     def __init__(self):
@@ -40,7 +30,6 @@ class StoreItemDBPipeline(object):
         engine = db_connect()
         create_tables(engine)
         self.Session = sessionmaker(bind=engine)
-        self.exporter = JsonExporter(encoding='utf-8')
 
     def open_spider(self, spider):
         self.session = self.Session()
@@ -53,9 +42,8 @@ class StoreItemDBPipeline(object):
         This method is called for every item pipeline component.
         """
         id = getkey(item, spider.name)
-        data = self.exporter.export_item(item)
-        model = ScrapItem(id=id, doc=ast.literal_eval(data), kind=spider.name,
-                          updated_at=datetime.now())
+        model = ScrapItem(id=id, doc=item, kind=spider.name,
+                          updated_at=datetime.now().isoformat())
 
         try:
             new_model = self.session.merge(model)

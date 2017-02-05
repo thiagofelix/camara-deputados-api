@@ -158,7 +158,7 @@ class ParserMixin:
                     'partidoAtual'         : deputado.get('partidoAtual'),
                     'numLegislatura'       : deputado.get('numLegislatura'),
                     'matricula'            : deputado.get('matricula'),
-                    'data'                 : datetime.strptime(sessao[0], "%d/%m/%Y"),
+                    'data'                 : datetime.strptime(sessao[0], "%d/%m/%Y").isoformat(),
                     'sessao'               : sessao[1],
                     'frequencia'           : sessao[2],
                     'justificativa'        : sessao[3],
