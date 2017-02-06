@@ -6,14 +6,12 @@ BOT_NAME = 'camara_deputados_api'
 SPIDER_MODULES = ['crawler.spiders']
 NEWSPIDER_MODULE = 'crawler.spiders'
 
-# FEED_FORMAT = 'json'
-# FEED_URI = 'stdout:'
 FEED_EXPORT_ENCODING = 'utf-8'
 HTTPCACHE_ENABLED = True
-DELTAFETCH_ENABLED = True
 COOKIES_ENABLED = False
 LOG_ENABLED = True
 LOG_LEVEL = 'INFO'
+DOWNLOAD_TIMEOUT = 5
 
 ITEM_PIPELINES = {
     'crawler.pipelines.StoreItemDBPipeline': 600
@@ -27,6 +25,7 @@ DATABASE = {
     'password': os.environ.get('DB_PASS', None),
     'database': os.environ.get('DB_NAME', 'camaradeputados')
 }
+AUTOTHROTTLE_ENABLED = True
+AUTOTHROTTLE_TARGET_CONCURRENCY = 2
 ROBOTSTXT_OBEY = False
-CONCURRENT_REQUESTS = 32
 TELNETCONSOLE_ENABLED = False

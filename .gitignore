@@ -4,3 +4,4 @@ venv
 crawler/db/
 crawler/files/
 .scrapy
+config.json

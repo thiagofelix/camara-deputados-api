@@ -170,7 +170,6 @@ class ParserMixin:
 class BaseSpider(scrapy.Spider):
     allowed_domains = ["www.camara.leg.br", "www2.camara.leg.br", "www.camara.gov.br", "www2.camara.gov.br"]
     custom_settings = {
-        #'DOWNLOAD_DELAY': 0.2,
         'RETRY_TIMES': 5
     }
 
@@ -205,7 +204,7 @@ class DeputadosSpider(BaseSpider, ParserMixin):
             xml = self.unzip('Deputados.xml', response.body)
             response = Selector(text=xml, type='xml')
 
-        if not self.nome is None:
+        if self.nome:
             deputados = response.xpath('//*[./nomeParlamentar = "%s"]' % self.nome)
         else:
             deputados = response.xpath('//nomeParlamentar/..')

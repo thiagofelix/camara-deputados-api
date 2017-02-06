@@ -1,0 +1,48 @@
+{
+    "deputados": {
+      "project_name": "camara-deputados-crawler",
+      "s3_bucket": "zappa-working-dir.thiagofelix.com",
+      "use_precompiled_packages": true,
+      "apigateway_enabled": false,
+      "debug": false,
+      "delete_local_zip": true,
+      "delete_s3_zip": true,
+      "log_level": "INFO",
+      "keep_warm": false,
+      "remote_env": "s3://zappaenv.thiagofelix.com/camara-deputados.json",
+      "timeout_seconds": 300,
+      "exclude": [".scrapy*"],
+      "lambda_description": "Atualiza biografia dos deputados",
+      "events": [{
+        "function": "crawl.deputados",
+        "expression": "cron(0 10 ? * MON-FRI *)"
+      }]
+    },
+    "votos": {
+      "extends": "deputados",
+      "keep_warm": false,
+      "lambda_description": "Atualiza votação dos deputados",
+      "events": [{
+        "function": "crawl.votos",
+        "expression": "cron(0 10-22 ? * MON-FRI *)"
+      }]
+    },
+    "presencas": {
+      "extends": "deputados",
+      "keep_warm": false,
+      "lambda_description": "Atualiza presença dos deputados",
+      "events": [{
+        "function": "crawl.presencas",
+        "expression": "cron(0 10-22 ? * MON-FRI *)"
+      }]
+    },
+    "syncdb": {
+      "extends": "deputados",
+      "keep_warm": false,
+      "lambda_description": "Atualiza o banco de dados",
+      "events": [{
+        "function": "crawl.dbscripts",
+        "expression": "cron(5 10-22 ? * MON-FRI *)"
+      }]
+    }
+}
