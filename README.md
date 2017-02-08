@@ -37,7 +37,7 @@ este presente ou ausente em uma determinada sessão, dia ou período de dias.
 **Exemplo**
 
 Histórico de presenca dos deputados cujo nome contendo a palavra *POPÓ*:  
-https://api-camara-deputados.herokuapp.com/presencas?nomeParlamentar=like.**POPÓ*
+https://api-camara-deputados.herokuapp.com/presencas?nomeParlamentar=like.*Popó*
 
 ### Votos
 
