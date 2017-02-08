@@ -60,7 +60,6 @@ CREATE MATERIALIZED VIEW votos AS
     (votos.doc ->> 'descricao'::text) AS descricao,
     (votos.doc -> 'partidoAtual'::text) AS "partidoAtual",
     (votos.doc ->> 'sessao'::text) AS sessao,
-    (votos.doc ->> 'url'::text) AS url,
     (votos.doc ->> 'voto'::text) AS voto,
     (votos.doc ->> 'frequencia'::text) AS frequencia,
     (votos.doc ->> 'data'::text) AS data
