@@ -6,6 +6,9 @@ BOT_NAME = 'camara_deputados_api'
 SPIDER_MODULES = ['crawler.spiders']
 NEWSPIDER_MODULE = 'crawler.spiders'
 
+FEED_URI = 'stdout:'
+FEED_EXPORT_ENCODING = 'utf-8'
+
 FEED_EXPORT_ENCODING = 'utf-8'
 HTTPCACHE_ENABLED = True
 COOKIES_ENABLED = False
@@ -14,7 +17,7 @@ LOG_LEVEL = 'INFO'
 DOWNLOAD_TIMEOUT = 5
 
 ITEM_PIPELINES = {
-    'crawler.pipelines.StoreItemDBPipeline': 600
+    # 'crawler.pipelines.StoreItemDBPipeline': 600
 }
 
 DATABASE = {

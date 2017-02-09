@@ -42,7 +42,7 @@ class StoreItemDBPipeline(object):
         This method is called for every item pipeline component.
         """
         id = getkey(item, spider.name)
-        model = ScrapItem(id=id, doc=item, kind=spider.name,
+        model = ScrapItem(id=id, doc=item, kind=spider.kind or spider.name,
                           updated_at=datetime.now().isoformat())
 
         try:

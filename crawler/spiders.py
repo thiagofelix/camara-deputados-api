@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import scrapy
+import logging
 from scrapy.selector import Selector
 
 from StringIO import StringIO
@@ -10,10 +11,10 @@ from datetime import date, datetime
 from urlparse import urlparse, parse_qs
 
 class ParserMixin:
-    def parse_deputado_detalhes(self, response):
-        self.logger.info('parsing %s', response.url)
-        perfil = response.meta.get('deputado', {})
-        deputados = response.xpath('//Deputado')
+    def parse_deputado_detalhes(self, res):
+        self.logger.info('parsing %s', res.url)
+        perfil = res.meta.get('deputado', {})
+        deputados = res.xpath('//Deputado')
         item = lambda f,d: d.xpath('%s/text()' % f).extract_first('').strip()
         keys = lambda f,d: dict([(k, item(k,d)) for k in f])
         mapKeys = lambda f,d: map(lambda x: keys(f, x), d)
@@ -82,8 +83,8 @@ class ParserMixin:
 
             yield data
 
-    def parse_deputado(self, response):
-        item = lambda f: response.xpath('%s/text()' % f).extract_first('').strip()
+    def parse_deputado(self, res):
+        item = lambda f: res.xpath('%s/text()' % f).extract_first('').strip()
 
         return {
             'numLegislatura': item('numLegislatura'),
@@ -104,13 +105,13 @@ class ParserMixin:
             'email': item('email'),
         }
 
-    def parse_presenca(self, response):
-        self.logger.info('parsing %s', response.url)
+    def parse_presenca(self, res):
+        self.logger.info('parsing %s', res.url)
         text = lambda f,d: d.xpath('%s/text()' % f).extract_first('').strip()
-        campo = lambda f: text(f,response.xpath('/parlamentar'))
-        meta = response.meta.get('deputado')
+        campo = lambda f: text(f,res.xpath('/parlamentar'))
+        meta = res.meta.get('deputado')
 
-        for diaItem in response.xpath('//diasDeSessoes2/dia'):
+        for diaItem in res.xpath('//diasDeSessoes2/dia'):
             dia = lambda f: text(f, diaItem)
 
             for sessaoItem in diaItem.xpath('sessoes/sessao'):
@@ -167,11 +168,48 @@ class ParserMixin:
                     'voto'                 : voto
                 }
 
+    def parse_votacao(self, res):
+        self.logger.info('parsing %s', res.url)
+        deputados = res.meta.get('deputados')
+        sessao = res.css('#corpoVotacao > p *::text').extract()[2].strip()
+        for deputado in deputados:
+            nome = deputado.get('nomeParlamentarAtual')
+            voto_xpath = "//td[contains(\
+            translate(text(), 'ABCDEFGHJIKLMNOPQRSTUVWXYZ', 'abcdefghjiklmnopqrstuvwxyz'), '%s')\
+            ]/../td[3]/text()" % nome.lower()
+
+            voto = res.xpath(voto_xpath).extract_first()
+            frequencia = 'Presente' if voto else 'Ausente'
+            data = res.css('.grid-line .content > p::text').extract_first().strip()
+            codigo, descricao = map(unicode.strip,res.css('#corpoVotacao p:nth-child(4)::text')\
+                                    .extract_first('').split('-',1))
+
+            # self.logger.info('Deputado %s' % deputado)
+            yield {
+                'ideCadastro'          : deputado.get('ideCadastro'),
+                'nomeParlamentarAtual' : deputado.get('nomeParlamentarAtual'),
+                'partidoAtual'         : deputado.get('partidoAtual'),
+                'numLegislatura'       : deputado.get('numLegislatura'),
+                'matricula'            : deputado.get('matricula'),
+                # 'data'                 : datetime.strptime(data, "%d/%m/%Y HH:MM").isoformat(),
+                'data'                 : data,
+                'sessao'               : sessao,
+                'frequencia'           : frequencia,
+                'justificativa'        : None,
+                'proposicao'           : codigo,
+                'descricao'            : descricao,
+                'voto'                 : voto
+            }
+
 class BaseSpider(scrapy.Spider):
     allowed_domains = ["www.camara.leg.br", "www2.camara.leg.br", "www.camara.gov.br", "www2.camara.gov.br"]
     custom_settings = {
         'RETRY_TIMES': 5
     }
+
+    def legislatura_atual(self):
+        ano_atual = datetime.now().year
+        return 49 + (ano_atual-1991)/4
 
     def ano_legislatura(self, legislatura):
         return 2015 - ((55-int(legislatura or 55)) * 4)
@@ -198,16 +236,16 @@ class DeputadosSpider(BaseSpider, ParserMixin):
         self.nome = unicode(nome, 'utf-8') if nome else None
         super(DeputadosSpider, self).__init__(*args, **kwargs)
 
-    def parse(self, response):
-        self.logger.info('parsing %s', response.url)
-        if '.zip' in response.url:
-            xml = self.unzip('Deputados.xml', response.body)
-            response = Selector(text=xml, type='xml')
+    def parse(self, res):
+        self.logger.info('parsing %s', res.url)
+        if '.zip' in res.url:
+            xml = self.unzip('Deputados.xml', res.body)
+            res = Selector(text=xml, type='xml')
 
         if self.nome:
-            deputados = response.xpath('//*[./nomeParlamentar = "%s"]' % self.nome)
+            deputados = res.xpath('//*[./nomeParlamentar = "%s"]' % self.nome)
         else:
-            deputados = response.xpath('//nomeParlamentar/..')
+            deputados = res.xpath('//nomeParlamentar/..')
 
         return map(self.fetch_deputado, map(self.parse_deputado, deputados))
 
@@ -225,9 +263,8 @@ class DeputadosSpider(BaseSpider, ParserMixin):
         return scrapy.Request(link, meta=meta,
                                 callback=self.parse_deputado_detalhes)
 
-    def parse_deputado_detalhes(self, response):
-        self.logger.info('parsing %s', response.url)
-        deputados = super(DeputadosSpider, self).parse_deputado_detalhes(response)
+    def parse_deputado_detalhes(self, res):
+        deputados = super(DeputadosSpider, self).parse_deputado_detalhes(res)
         return map(self.process_deputado, deputados)
 
     def process_deputado(self, deputado):
@@ -299,3 +336,87 @@ class VotosSpider(DeputadosSpider):
         meta = dict(deputado=deputado)
         link = url.format(legislatura, matricula, dataInicio, dataFim)
         return scrapy.Request(link, meta=meta, callback=self.parse_votos)
+
+class VotacaoSpider(DeputadosSpider):
+    name = "votacao"
+    kinkd = "voto"
+
+    def __init__(self, data=None, dataInicio=None, dataFim=None, *args, **kwargs):
+        if data == 'hoje':
+            data = date.strftime(date.today(), '%d/%m/%Y')
+
+        legislatura = self.legislatura_atual()
+        dataInicio = dataInicio or data or self.inicio_legislatura(legislatura)
+        dataFim = dataFim or data or self.fim_legislatura(legislatura)
+
+        url = (
+            'http://www.camara.leg.br/'
+            'internet/votacao/default.asp'
+            '?datInicial={0}'
+            '&datFinal={1}'
+        ).format(dataInicio, dataFim)
+        self.start_urls = [url]
+
+        super(VotacaoSpider, self).__init__(*args, **kwargs)
+
+    def parse(self, res):
+        self.logger.info('parsing %s', res.url)
+        votacoes = res.css('a[href*="tipo=partido"]').xpath('@href').extract()
+        votacoes = map(lambda href: 'http://www.camara.leg.br/internet/votacao/%s' % href, votacoes)
+        if (len(votacoes) > 0):
+            return GetDeputadosAtuais(callback=self.parse_votacoes, meta=dict(votacoes=votacoes))
+
+    def parse_votacoes(self, deputados, meta):
+        for link in meta.get('votacoes'):
+            meta=dict(deputados=deputados)
+            yield scrapy.Request(link, meta=meta, callback=self.parse_votacao)
+
+
+class GetDeputadosAtuais(scrapy.Request, ParserMixin):
+    def __init__(self, callback=None, meta=None, *args, **kwargs):
+        self.client_callback=callback
+        self.client_meta=meta
+        super(GetDeputadosAtuais, self).__init__('http://www.camara.leg.br/SitCamaraWS/Deputados.asmx/ObterDeputados',
+                                              callback=self.parse_deputados,
+                                              *args, **kwargs)
+    def parse_deputados(self, res):
+        deputados = map(self.parse_deputado, res.xpath('//nomeParlamentar/..'))
+        url = (
+            'http://www.camara.leg.br/SitCamaraWS/'
+            'deputados.asmx/ObterDetalhesDeputado'
+            '?ideCadastro={0}'
+            '&numLegislatura='
+        )
+
+        self.total_requests = 0
+        self.deputados = []
+        self.logger = logging.getLogger()
+        requests = []
+
+        for deputado in deputados:
+            meta = dict(deputado=deputado)
+            ideCadastro = deputado.get('ideCadastro')
+            link = url.format(ideCadastro)
+            self.total_requests += 1
+            requests.append(
+                scrapy.Request(link,
+                               meta=meta,
+                               callback=self.parse_deputado_detalhes,
+                               errback=self.errback)
+            )
+
+        return requests
+
+    def errback(self):
+        self.total_requests -= 1
+        if (self.total_requests== 0):
+            return self.client_callback(self.deputados, self.client_meta)
+
+    def parse_deputado_detalhes(self, res):
+        deputados = super(GetDeputadosAtuais, self).parse_deputado_detalhes(res)
+        for deputado in deputados:
+            self.deputados.append(deputado)
+
+        self.total_requests -= 1
+        if (self.total_requests== 0):
+            return self.client_callback(self.deputados, self.client_meta)
